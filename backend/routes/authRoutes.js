@@ -2,7 +2,13 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const { body, validationResult } = require("express-validator");
-
+// npm package to store password with a salt
+var bcrypt = require("bcryptjs");
+// npm package for generating jwt token for auth purpose
+var jwt = require("jsonwebtoken");
+// configuration for reading an env file
+const dotenv = require("dotenv");
+dotenv.config();
 // persist a user object without any Auth : endpoint: /api/auth/createuser
 router.post(
   "/createuser",
@@ -19,31 +25,38 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    // User.findOne returns a promise. Hence, await
-    let user = await User.findOne({email: req.body.email});
-    if(user){
-      return res.status(400).json({error: "Invalid Request. Email already exists."});
+    try {
+      // User.findOne returns a promise. Hence, await
+      let user = await User.findOne({ email: req.body.email });
+      if (user) {
+        // checking for duplicate user email
+        return res
+          .status(400)
+          .json({ error: "Invalid Request. Email already exists." });
+      }
+      const password = req.body.password;
+      const salt = bcrypt.genSaltSync(10);
+      const securePass = await bcrypt.hash(password, salt);
+      // creating a new user
+      user = await User.create({
+        name: req.body.name,
+        password: securePass,
+        email: req.body.email,
+      });
+      const data = {
+        user: {
+          id: user.id
+        },
+      };
+      var authToken = jwt.sign(data, process.env.JWT_SECRET);
+      // returning the auth token to user which can be used later for authentication purposes
+      res.json({auth:authToken});
+      // display the response, either correct or the error to user
+      // res.json({ user: user });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json(`Oops. Error found: ${err.message}`);
     }
-    user = await User.create({
-      name: req.body.name, 
-      password: req.body.password,
-      email: req.body.email,
-    });
-    // display the response, either correct or the error to user
-    res.json({user: user});
-      // check whether email already exists
-
-      // .then((user) => res.json(user))
-      // .catch((error) => {
-      //   console.log(error);
-      //   res.json({
-      //     error: "Please enter a unique email.",
-      //     message: error.message
-      //   });
-      // });
-    // const user = User(req.body);
-    // user.save();
-    // res.send(req.body);
   }
 );
 
