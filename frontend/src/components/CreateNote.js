@@ -46,6 +46,10 @@ export default function CreateNote() {
           <label className="form-label" htmlFor="description">Description</label>
           <textarea className="form-control" rows="5" id="description" name="description" onChange={onChange}></textarea>
         </div>
+        <div className="mb-3">
+          <label htmlFor="tag" className ="form-label">Tag</label>
+          <input type="text" className="form-control" id="tag" name="tag" onChange={onChange}/>
+        </div>
         <button type="submit" id="submit" className="btn btn-dark" onClick={addNewNote}>Save</button>
       </form>
     </div>
